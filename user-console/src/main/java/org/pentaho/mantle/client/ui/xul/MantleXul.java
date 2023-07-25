@@ -29,6 +29,8 @@ import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.DeckPanel;
+import com.google.gwt.user.client.ui.MenuBar;
+import com.google.gwt.user.client.ui.MenuItem;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Tree;
@@ -52,6 +54,7 @@ import org.pentaho.mantle.client.events.SolutionBrowserSelectEventHandler;
 import org.pentaho.mantle.client.messages.Messages;
 import org.pentaho.mantle.client.objects.MantleXulOverlay;
 import org.pentaho.mantle.client.solutionbrowser.tabs.IFrameTabPanel;
+import org.pentaho.mantle.client.ui.tabs.MantleTabPanel;
 import org.pentaho.ui.xul.XulException;
 import org.pentaho.ui.xul.XulOverlay;
 import org.pentaho.ui.xul.gwt.GwtXulDomContainer;
@@ -84,6 +87,7 @@ public class MantleXul implements IXulLoaderCallback, SolutionBrowserOpenEventHa
   private SimplePanel menubar = new SimplePanel();
 
   private SimplePanel burgerToolbarWrapper = new SimplePanel();
+  private SimplePanel tabsMenuBarWrapper = new SimplePanel();
 
   private SimplePanel adminPerspective = new SimplePanel();
   private DeckPanel adminContentDeck = new DeckPanel();
@@ -153,6 +157,13 @@ public class MantleXul implements IXulLoaderCallback, SolutionBrowserOpenEventHa
     burgerToolbar.getElement().removeClassName( "toolbar" );
     burgerToolbarWrapper.setStylePrimaryName( "burgerToolbar-Wrapper" );
     burgerToolbarWrapper.setWidget( burgerToolbar );
+
+    //TODO setting tabsMenu (populated later)
+    MenuBar tabsMenuBar = ( MenuBar ) container.getDocumentRoot().getElementById( "tabsMenuBar" ).getManagedObject();
+    MenuItem tabsMenuItem = ( MenuItem ) container.getDocumentRoot().getElementById( "tabsMenu" ).getManagedObject();
+    tabsMenuBar.setStylePrimaryName( "flex-row" );
+    MantleTabPanel.setTabsMenu( tabsMenuBar, tabsMenuItem );
+    tabsMenuBarWrapper.setWidget( tabsMenuBar );
 
     // Get the menubar from the XUL doc
     Widget menu = (Widget) container.getDocumentRoot().getElementById( "mainMenubar" ).getManagedObject(); //$NON-NLS-1$
@@ -321,6 +332,10 @@ public class MantleXul implements IXulLoaderCallback, SolutionBrowserOpenEventHa
 
   public Widget getBurgerToolbarWrapper() {
     return burgerToolbarWrapper;
+  }
+
+  public SimplePanel getTabsMenuBarWrapper(){
+    return tabsMenuBarWrapper;
   }
 
   public Widget getMenubar() {

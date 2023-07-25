@@ -1183,7 +1183,7 @@ div#customDropdownPopupMajor .gwt-MenuBar-vertical .gwt-MenuItem:hover:not(.gwt-
   border-spacing: 0;
 }
 
-#mainMenubar .gwt-MenuItem {
+#mainMenubar .gwt-MenuItem, #pucTabsMenuBar .gwt-MenuItem{
   color: #414141;
   font-size: 13px;
   font-family: OpenSansLight;
@@ -1191,7 +1191,7 @@ div#customDropdownPopupMajor .gwt-MenuBar-vertical .gwt-MenuItem:hover:not(.gwt-
   padding: 5px 15px;
 }
 
-#mainMenubar .gwt-MenuItem-selected {
+#mainMenubar .gwt-MenuItem-selected, #pucTabsMenuBar .gwt-MenuItem-selected{
   background: #cc0000;
   border: 0 none;
   color: #FFF;
@@ -1582,7 +1582,7 @@ hr {
 }
 
 /* region Burger Menu Mode */
-#burgerBarPerspectiveMenu {
+#burgerBarPerspectiveMenu, #pucTabsMenuBar {
   display: none;
 }
 
@@ -1595,7 +1595,7 @@ hr {
   display: none;
 }
 
-:where(.burger-mode) #burgerBarPerspectiveMenu {
+:where(.burger-mode) :is(#burgerBarPerspectiveMenu, #pucTabsMenuBar) {
   display: block;
 }
 
@@ -1761,4 +1761,19 @@ hr {
   display: none;
 }
 
+:where(.burger-mode) .pentaho-tab-bar{
+  display: none;
+}
+
+.empty-tabs-menu{
+  display: none;
+}
+
 /* endregion Burger Menu Mode */
+#pucTabsMenuBar table td, .tabsSubMenuBar table td {
+  width: 150px;
+  overflow: hidden;
+  display: inline-block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

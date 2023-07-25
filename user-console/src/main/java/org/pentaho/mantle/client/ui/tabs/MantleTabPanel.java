@@ -21,12 +21,15 @@
 package org.pentaho.mantle.client.ui.tabs;
 
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.dom.client.NodeList;
 import com.google.gwt.user.client.Element;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.Window.ClosingEvent;
 import com.google.gwt.user.client.Window.ClosingHandler;
+import com.google.gwt.user.client.ui.MenuBar;
+import com.google.gwt.user.client.ui.MenuItem;
 import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.Widget;
 import org.pentaho.gwt.widgets.client.dialogs.IDialogCallback;
@@ -50,6 +53,7 @@ import org.pentaho.mantle.client.ui.PerspectiveManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoTabPanel {
@@ -58,12 +62,36 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
   private static final String FRAME_ID_PRE = "frame_"; //$NON-NLS-1$
   private static int frameIdCount = 0;
 
+  private static MenuBar tabsMenuBar;
+  private static MenuItem tabsMenuItem;
+  private static MenuBar tabsSubMenuBar;
+
+  private static final String EMPTY_TABS_MENU = "empty-tabs-menu";
+
+  private HashMap<PentahoTab, MantleTabMenuItem> menuItemHashMap;
+
+  private class MantleTabMenuItem extends MenuItem {
+    private MantleTab mantleTab;
+
+    public MantleTabMenuItem( MantleTab tab ) {
+      super( tab.getLabelText(), (Scheduler.ScheduledCommand) null );
+      mantleTab = tab;
+      refreshContextMenu();
+    }
+
+    public void refreshContextMenu() {
+      setSubMenu( mantleTab.getContextMenuBar( true ) );
+    }
+  }
+
   public MantleTabPanel() {
     this( false );
   }
 
   public MantleTabPanel( boolean setupNativeHooks ) {
     super();
+    menuItemHashMap = new HashMap<>();
+
     if ( setupNativeHooks ) {
       setupNativeHooks( this );
     }
@@ -85,6 +113,15 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
     } );
   }
 
+  public static void setTabsMenu( MenuBar menuBar, MenuItem menuItem ) {
+    tabsMenuBar = menuBar;
+    tabsMenuItem = menuItem;
+    tabsSubMenuBar = new MenuBar( true );
+    tabsSubMenuBar.addStyleName( "tabsSubMenuBar" );
+    tabsMenuItem.setSubMenu( tabsSubMenuBar );
+    tabsMenuBar.addStyleName( EMPTY_TABS_MENU );
+  }
+
   public void addTab( String text, String tooltip, boolean closeable, Widget content ) {
     // make sure the perspective is enabled
     PerspectiveManager.getInstance().enablePerspective( PerspectiveManager.OPENED_PERSPECTIVE, true );
@@ -94,7 +131,39 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
     if ( getSelectedTab() == null ) {
       selectTab( tab );
     }
+    updateTabMenuText( tab );
+    MantleTabMenuItem menuItem = createTabMenuItem( tab );
+    menuItemHashMap.put( tab, menuItem );
+    tabsSubMenuBar.addItem( menuItem );
+    contextMenuRefreshThreshold( true );
   }
+
+  public void renameMenuTab( PentahoTab tab ){
+    menuItemHashMap.get( tab ).setText( tab.getLabelText() );
+    updateTabMenuText( tab );
+  }
+
+  public void updateTabMenuText( PentahoTab tab ) {
+    if ( tab == null ) {
+      tabsMenuBar.addStyleName( EMPTY_TABS_MENU );
+      tabsMenuItem.setText( "" );
+    } else {
+      tabsMenuBar.removeStyleName( EMPTY_TABS_MENU );
+      tabsMenuItem.setText( tab.getLabelText() );
+    }
+  }
+
+  private MantleTabMenuItem createTabMenuItem( MantleTab tab ) {
+    MantleTabMenuItem tabMenuItem = new MantleTabMenuItem( tab );
+    return tabMenuItem;
+  }
+
+  private void contextMenuRefreshThreshold( boolean added ) {
+    if ( ( added && menuItemHashMap.size() == 2 ) || ( !added && menuItemHashMap.size() == 1 ) ) {
+      menuItemHashMap.values().forEach( m -> m.refreshContextMenu() );
+    }
+  }
+
 
   public void showNewURLTab( String tabName, String tabTooltip, String url, boolean setFileInfoInFrame,
                              String frameName ) {
@@ -595,6 +664,10 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
     }
 
     super.closeTab( closeTab, invokePreTabCloseHook );
+    updateTabMenuText( getSelectedTab() );
+    tabsSubMenuBar.removeItem( menuItemHashMap.get( closeTab ) );
+    menuItemHashMap.remove( closeTab );
+    contextMenuRefreshThreshold(false);
 
     if ( getTabCount() == 0 ) {
       allTabsClosed();
