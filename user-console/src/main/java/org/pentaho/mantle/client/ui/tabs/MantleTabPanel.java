@@ -119,6 +119,7 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
     tabsSubMenuBar = new MenuBar( true );
     tabsSubMenuBar.addStyleName( "tabsSubMenuBar" );
     tabsMenuItem.setSubMenu( tabsSubMenuBar );
+    tabsMenuBar.addStyleName("flex-row" );
     tabsMenuBar.addStyleName( EMPTY_TABS_MENU );
   }
 

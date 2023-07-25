@@ -158,10 +158,8 @@ public class MantleXul implements IXulLoaderCallback, SolutionBrowserOpenEventHa
     burgerToolbarWrapper.setStylePrimaryName( "burgerToolbar-Wrapper" );
     burgerToolbarWrapper.setWidget( burgerToolbar );
 
-    //TODO setting tabsMenu (populated later)
     MenuBar tabsMenuBar = ( MenuBar ) container.getDocumentRoot().getElementById( "tabsMenuBar" ).getManagedObject();
     MenuItem tabsMenuItem = ( MenuItem ) container.getDocumentRoot().getElementById( "tabsMenu" ).getManagedObject();
-    tabsMenuBar.setStylePrimaryName( "flex-row" );
     MantleTabPanel.setTabsMenu( tabsMenuBar, tabsMenuItem );
     tabsMenuBarWrapper.setWidget( tabsMenuBar );
 
