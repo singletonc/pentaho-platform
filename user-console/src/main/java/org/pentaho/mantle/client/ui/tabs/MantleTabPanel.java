@@ -80,7 +80,10 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
     }
 
     public void refreshContextMenu() {
-      setSubMenu( mantleTab.getContextMenuBar( true ) );
+      MenuBar contextMenuBar = mantleTab.getContextMenuBar( true );
+      contextMenuBar.setStyleName( "tabsMenuContextSubMenu" );
+      setSubMenu( contextMenuBar );
+
     }
   }
 

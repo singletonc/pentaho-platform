@@ -1771,9 +1771,25 @@ hr {
 
 /* endregion Burger Menu Mode */
 #pucTabsMenuBar table td, .tabsSubMenuBar table td.gwt-MenuItem {
-  width: 150px;
-  overflow: hidden;
+  width: 130px;
   display: inline-block;
+}
+
+#pucTabsMenuBar table td {
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.tabsSubMenuBar table td.gwt-MenuItem {
+  word-wrap:break-word;
+}
+
+.tabsSubMenuBar {
+  position: relative;
+  left: -40px;
+}
+
+.tabsMenuBarContextSubMenu{
+
 }
