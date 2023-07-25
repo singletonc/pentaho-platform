@@ -134,11 +134,11 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
     if ( getSelectedTab() == null ) {
       selectTab( tab );
     }
-    updateTabMenuText( tab );
     MantleTabMenuItem menuItem = createTabMenuItem( tab );
     menuItemHashMap.put( tab, menuItem );
     tabsSubMenuBar.addItem( menuItem );
     contextMenuRefreshThreshold( true );
+    updateTabMenuText( tab );
   }
 
   public void renameMenuTab( PentahoTab tab ){
@@ -152,7 +152,15 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
       tabsMenuItem.setText( "" );
     } else {
       tabsMenuBar.removeStyleName( EMPTY_TABS_MENU );
-      tabsMenuItem.setText( tab.getLabelText() );
+      String tabMenuText;
+      int tabCount = getTabCount();
+      if ( tabCount > 1 ) {
+        int tabIndex = tabsSubMenuBar.getItemIndex( menuItemHashMap.get( tab ) ) + 1;
+        tabMenuText = "Tab (" + tabIndex + "/" + tabCount + ") " + tab.getLabelText();
+      } else {
+        tabMenuText = tab.getLabelText();
+      }
+      tabsMenuItem.setText( tabMenuText );
     }
   }
 
