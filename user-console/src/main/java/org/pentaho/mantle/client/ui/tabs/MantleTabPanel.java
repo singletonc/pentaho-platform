@@ -80,6 +80,8 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
       super( b );
     }
 
+    private static final String TABS_CONTEXT_MENU_MAX_HEIGHT = "346px";
+
     @Override
     public void onBrowserEvent( Event event ) {
       super.onBrowserEvent( event );
@@ -93,7 +95,7 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
             DecoratedPopupPanel popup = MenuBarUtils.getPopup( this );
             int menuItemTop = item.getAbsoluteTop();
             int menuBarWidth = this.getOffsetWidth();
-            popup.getWidget().getElement().getStyle().setProperty( "maxHeight", popup.getOffsetHeight() + "px" );
+            popup.getWidget().getElement().getStyle().setProperty( "maxHeight", TABS_CONTEXT_MENU_MAX_HEIGHT );
             popup.getWidget().getElement().getStyle().setProperty( "height", "calc( 100vh - " + menuItemTop + "px )" );
             popup.setPopupPosition( menuBarWidth, menuItemTop );
           }
