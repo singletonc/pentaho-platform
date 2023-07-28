@@ -1789,3 +1789,13 @@ hr {
   position: relative;
   left: -40px;
 }
+
+.tabsMenuContextSubMenu{
+  overflow-y: auto;
+}
+
+@media (max-width: 400px){
+  .tabsMenuContextSubMenu table td.gwt-MenuItem  {
+    width: calc(100vw - 235px);
+  }
+}

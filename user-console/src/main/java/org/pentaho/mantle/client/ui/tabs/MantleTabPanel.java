@@ -23,11 +23,14 @@ package org.pentaho.mantle.client.ui.tabs;
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.dom.client.NodeList;
+import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Element;
+import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.Window.ClosingEvent;
 import com.google.gwt.user.client.Window.ClosingHandler;
+import com.google.gwt.user.client.ui.DecoratedPopupPanel;
 import com.google.gwt.user.client.ui.MenuBar;
 import com.google.gwt.user.client.ui.MenuItem;
 import com.google.gwt.user.client.ui.PopupPanel;
@@ -36,6 +39,7 @@ import org.pentaho.gwt.widgets.client.dialogs.IDialogCallback;
 import org.pentaho.gwt.widgets.client.dialogs.MessageDialogBox;
 import org.pentaho.gwt.widgets.client.tabs.PentahoTab;
 import org.pentaho.gwt.widgets.client.utils.FrameUtils;
+import org.pentaho.gwt.widgets.client.utils.MenuBarUtils;
 import org.pentaho.gwt.widgets.client.utils.string.StringUtils;
 import org.pentaho.mantle.client.dialogs.WaitPopup;
 import org.pentaho.mantle.client.events.EventBusUtil;
@@ -64,13 +68,42 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
 
   private static MenuBar tabsMenuBar;
   private static MenuItem tabsMenuItem;
-  private static MenuBar tabsSubMenuBar;
+  private static TabContextMenuBar tabsSubMenuBar;
 
   private static final String EMPTY_TABS_MENU = "empty-tabs-menu";
 
   private HashMap<PentahoTab, MantleTabMenuItem> menuItemHashMap;
 
-  private class MantleTabMenuItem extends MenuItem {
+  private static class TabContextMenuBar extends com.google.gwt.user.client.ui.MenuBar {
+
+    public TabContextMenuBar( boolean b ) {
+      super( b );
+    }
+
+    @Override
+    public void onBrowserEvent( Event event ) {
+      super.onBrowserEvent( event );
+
+      MenuItem item = MenuBarUtils.findItem( this, DOM.eventGetTarget( event ) );
+      int type = event.getTypeInt();
+      switch ( type ) {
+        case Event.ONMOUSEOVER:
+        case Event.ONMOUSEOUT: {
+          if ( item != null ) {
+            DecoratedPopupPanel popup = MenuBarUtils.getPopup( this );
+            int menuItemTop = item.getAbsoluteTop();
+            int menuBarWidth = this.getOffsetWidth();
+            popup.getWidget().getElement().getStyle().setProperty( "maxHeight", popup.getOffsetHeight() + "px" );
+            popup.getWidget().getElement().getStyle().setProperty( "height", "calc( 100vh - " + menuItemTop + "px )" );
+            popup.setPopupPosition( menuBarWidth, menuItemTop );
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  private class MantleTabMenuItem extends com.google.gwt.user.client.ui.MenuItem {
     private MantleTab mantleTab;
 
     public MantleTabMenuItem( MantleTab tab ) {
@@ -118,7 +151,7 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
   public static void setTabsMenu( MenuBar menuBar, MenuItem menuItem ) {
     tabsMenuBar = menuBar;
     tabsMenuItem = menuItem;
-    tabsSubMenuBar = new MenuBar( true );
+    tabsSubMenuBar = new TabContextMenuBar( true );
     tabsSubMenuBar.addStyleName( "tabsSubMenuBar" );
     tabsMenuItem.setSubMenu( tabsSubMenuBar );
     tabsMenuBar.addStyleName("flex-row" );
@@ -174,7 +207,6 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
       menuItemHashMap.values().forEach( m -> m.refreshContextMenu() );
     }
   }
-
 
   public void showNewURLTab( String tabName, String tabTooltip, String url, boolean setFileInfoInFrame,
                              String frameName ) {
