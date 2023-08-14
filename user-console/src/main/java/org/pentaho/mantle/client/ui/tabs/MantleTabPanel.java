@@ -76,11 +76,12 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
 
   private static class TabContextMenuBar extends com.google.gwt.user.client.ui.MenuBar {
 
+    String height, maxHeight;
+    int left, top, menuBarTop;
+
     public TabContextMenuBar( boolean b ) {
       super( b );
     }
-
-    private static final String TABS_CONTEXT_MENU_MAX_HEIGHT = "346px";
 
     @Override
     public void onBrowserEvent( Event event ) {
@@ -89,15 +90,20 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
       MenuItem item = MenuBarUtils.findItem( this, DOM.eventGetTarget( event ) );
       int type = event.getTypeInt();
       switch ( type ) {
-        case Event.ONMOUSEOVER:
-        case Event.ONMOUSEOUT: {
+        case Event.ONMOUSEOVER: {
           if ( item != null ) {
             DecoratedPopupPanel popup = MenuBarUtils.getPopup( this );
-            int menuItemTop = item.getAbsoluteTop();
-            int menuBarWidth = this.getOffsetWidth();
-            popup.getWidget().getElement().getStyle().setProperty( "maxHeight", TABS_CONTEXT_MENU_MAX_HEIGHT );
-            popup.getWidget().getElement().getStyle().setProperty( "height", "calc( 100vh - " + menuItemTop + "px )" );
-            popup.setPopupPosition( menuBarWidth, menuItemTop );
+            left = this.getOffsetWidth();
+            top = item.getAbsoluteTop();
+            menuBarTop = this.getAbsoluteTop();
+            if ( top < menuBarTop ) {
+              top = menuBarTop + 1;
+            }
+            height = "calc( 100vh - " + top + "px )";
+            maxHeight = MenuBarUtils.calculatePopupHeight( item.getSubMenu() ) + "px";
+            popup.getWidget().getElement().getStyle().setProperty( "height", height );
+            popup.getWidget().getElement().getStyle().setProperty( "maxHeight", maxHeight );
+            popup.setPopupPosition( left, top );
           }
           break;
         }

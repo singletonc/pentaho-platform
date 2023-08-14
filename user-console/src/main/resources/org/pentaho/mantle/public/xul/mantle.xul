@@ -70,7 +70,7 @@
                    tooltiptext="${burgerMenu}"/>
   </toolbar>
 
-  <menubar id="tabsMenuBar" layout="horizontal">
+  <menubar id="tabsMenuBar" layout="horizontal" scroll="true">
     <menuitem id="tabsMenu" />
   </menubar>
 

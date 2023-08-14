@@ -1787,10 +1787,9 @@ hr {
 
 .tabsSubMenuBar {
   position: relative;
-  left: -40px;
 }
 
-.tabsMenuContextSubMenu{
+.tabsMenuContextSubMenu, .tabsSubMenuBar{
   overflow-y: auto;
 }
 
