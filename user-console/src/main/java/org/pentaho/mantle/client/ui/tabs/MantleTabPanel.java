@@ -715,7 +715,6 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
     }
 
     super.closeTab( closeTab, invokePreTabCloseHook );
-    updateTabMenuText( getSelectedTab() );
     tabsSubMenuBar.removeItem( menuItemHashMap.get( closeTab ) );
     menuItemHashMap.remove( closeTab );
     contextMenuRefreshThreshold(false);
@@ -729,6 +728,8 @@ public class MantleTabPanel extends org.pentaho.gwt.widgets.client.tabs.PentahoT
       List<FileItem> selectedItems = SolutionBrowserPanel.getInstance().getFilesListPanel().getSelectedFileItems();
       EventBusUtil.EVENT_BUS.fireEvent( new SolutionBrowserCloseEvent( selectTabContent, selectedItems ) );
     }
+
+    updateTabMenuText( getSelectedTab() );
   }
 
   public static native void clearClosingFrame( Element frame )
