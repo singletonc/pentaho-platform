@@ -62,7 +62,7 @@ public class GatherStatsListener implements IPentahoSystemListener {
 
   private void scheduleJob( int intervalInSeconds ) throws Exception {
 
-    IScheduler scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null ); //$NON-NLS-1$
+    IScheduler scheduler = PentahoSystem.get( IScheduler.class ); //$NON-NLS-1$
     assert scheduler != null;
     IJobTrigger trigger = scheduler.createSimpleJobTrigger( new Date(), null, -1, intervalInSeconds );
 

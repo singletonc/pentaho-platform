@@ -510,7 +510,7 @@ public class PentahoPlatformExporter extends ZipExportProcessor {
 
   public IScheduler getScheduler() {
     if ( scheduler == null ) {
-      scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null ); //$NON-NLS-1$
+      scheduler = PentahoSystem.get( IScheduler.class ); //$NON-NLS-1$
     }
     return scheduler;
   }

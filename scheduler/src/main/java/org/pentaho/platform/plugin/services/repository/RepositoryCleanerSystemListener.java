@@ -66,7 +66,7 @@ public class RepositoryCleanerSystemListener implements IPentahoSystemListener, 
   enum Frequency {
     NOW( "now" ) {
       @Override public IJobTrigger createTrigger() {
-        IScheduler scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null );
+        IScheduler scheduler = PentahoSystem.get( IScheduler.class );
         return (IJobTrigger) scheduler.createSimpleJobTrigger( new Date(),
           new Date( Long.MAX_VALUE ), 0, 1 );
       }
@@ -74,7 +74,7 @@ public class RepositoryCleanerSystemListener implements IPentahoSystemListener, 
 
     WEEKLY( "weekly" ) {
       @Override public IJobTrigger createTrigger() {
-        IScheduler scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null );
+        IScheduler scheduler = PentahoSystem.get( IScheduler.class );
         // execute each first day of week at 0 hours
         return (IJobTrigger) scheduler.createComplexTrigger( null, null, null, IComplexJobTrigger.SUNDAY, 0 );
       }
@@ -82,7 +82,7 @@ public class RepositoryCleanerSystemListener implements IPentahoSystemListener, 
 
     MONTHLY( "monthly" ) {
       @Override public IJobTrigger createTrigger() {
-        IScheduler scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null );
+        IScheduler scheduler = PentahoSystem.get( IScheduler.class );
 
         // execute each first day of month at 0 hours
         return (IJobTrigger) scheduler.createComplexTrigger( null, null, 1, null, 0 );

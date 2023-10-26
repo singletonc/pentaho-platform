@@ -309,7 +309,7 @@ public class SolutionImportHandler implements IPlatformImportHandler {
 
   protected void importSchedules( List<IJobScheduleRequest> scheduleList ) throws PlatformImportException {
     if ( CollectionUtils.isNotEmpty( scheduleList ) ) {
-      IScheduler scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null ); //$NON-NLS-1$
+      IScheduler scheduler = PentahoSystem.get( IScheduler.class ); //$NON-NLS-1$
       ISchedulerResource schedulerResource = scheduler.createSchedulerResource();
       schedulerResource.pause();
       for ( IJobScheduleRequest jobScheduleRequest : scheduleList ) {

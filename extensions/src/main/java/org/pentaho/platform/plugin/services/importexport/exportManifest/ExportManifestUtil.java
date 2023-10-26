@@ -88,7 +88,7 @@ public class ExportManifestUtil {
 
   public static ArrayList<IJobScheduleRequest> fromBindingToSchedulerRequest(
     List<JobScheduleRequest> bindingRequests ) {
-    IScheduler scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null ); //$NON-NLS-1$
+    IScheduler scheduler = PentahoSystem.get( IScheduler.class ); //$NON-NLS-1$
     assert scheduler != null;
     ArrayList<IJobScheduleRequest> schedules = new ArrayList<>();
     for ( JobScheduleRequest bindingRequest : bindingRequests ) {
@@ -114,7 +114,7 @@ public class ExportManifestUtil {
 
   private static List<IJobScheduleParam> fromBindingToSchedulerRequestJobParameters(
     List<JobScheduleParam> incomingParams ) {
-    IScheduler scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null ); //$NON-NLS-1$
+    IScheduler scheduler = PentahoSystem.get( IScheduler.class ); //$NON-NLS-1$
     List<IJobScheduleParam> outgoingParams = new ArrayList<>();
     for ( JobScheduleParam incomingParam : incomingParams ) {
       IJobScheduleParam outgoingParam = scheduler.createJobScheduleParam();
@@ -128,13 +128,13 @@ public class ExportManifestUtil {
 
   private static ISimpleJobTrigger fromBindingToSchedulerRequestJobTrigger(
     SimpleJobTrigger incomingSimpleJobTrigger ) {
-    IScheduler scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null ); //$NON-NLS-1$
+    IScheduler scheduler = PentahoSystem.get( IScheduler.class ); //$NON-NLS-1$
     return scheduler.createSimpleJobTrigger( new Date(), null, incomingSimpleJobTrigger.getRepeatCount(),
       incomingSimpleJobTrigger.getRepeatInterval() );
   }
 
   private static ICronJobTrigger fromBindingToSchedulerRequestCronJobTrigger( CronJobTrigger incomingCronJobTrigger ) {
-    IScheduler scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null ); //$NON-NLS-1$
+    IScheduler scheduler = PentahoSystem.get( IScheduler.class ); //$NON-NLS-1$
     ICronJobTrigger outgoingCronJobTrigger = scheduler.createCronJobTrigger();
     outgoingCronJobTrigger.setCronString( incomingCronJobTrigger.getCronString() );
     return outgoingCronJobTrigger;

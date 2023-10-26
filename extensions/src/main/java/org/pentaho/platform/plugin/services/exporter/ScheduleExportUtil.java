@@ -53,7 +53,7 @@ public class ScheduleExportUtil {
       throw new IllegalArgumentException(
         Messages.getInstance().getString( "ScheduleExportUtil.JOB_MUST_NOT_BE_NULL" ) );
     }
-    IScheduler scheduler = PentahoSystem.get( IScheduler.class, "IScheduler2", null ); //$NON-NLS-1$
+    IScheduler scheduler = PentahoSystem.get( IScheduler.class ); //$NON-NLS-1$
     assert scheduler != null;
     IJobScheduleRequest schedule = scheduler.createJobScheduleRequest();
     schedule.setJobName( job.getJobName() );
