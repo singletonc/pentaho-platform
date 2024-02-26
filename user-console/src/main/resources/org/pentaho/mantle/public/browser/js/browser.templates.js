@@ -86,8 +86,9 @@ define([
   templates.buttons = Handlebars.compile("{{#each buttons}}{{button}}{{/each}}");
 
   //folder template with recursive behavior
+  //TODO HACKED
   templates.folderText =
-      "{{#ifCond file.folder 'true'}}" +
+      "{{#isFolder file.folder}}" +
           "{{#ifCond file.path '.trash'}}" +
           "<div id='{{file.id}}' class='trash folder' path='{{file.path}}' ext='{{file.name}}' desc='{{file.name}}'>" +
           "{{else}}" +
@@ -106,7 +107,7 @@ define([
           "{{#each children}} {{> folder}} {{/each}}" +
           "</div>" +
           "</div>" +
-          "{{/ifCond}}";
+          "{{/isFolder}}";
 
   //folders recursion
   templates.foldersText = "{{#each children}} {{> folder}} {{/each}}";
@@ -193,6 +194,14 @@ define([
   //extra helpers
   Handlebars.registerHelper('ifCond', function (v1, v2, options) {
     if (v1 == v2) {
+      return options.fn(this);
+    }
+    return options.inverse(this);
+  });
+
+  //TODO THIS IS A HACK
+  Handlebars.registerHelper('isFolder', function (v1, options) {
+    if (v1 == true || v1 == 'true') {
       return options.fn(this);
     }
     return options.inverse(this);
