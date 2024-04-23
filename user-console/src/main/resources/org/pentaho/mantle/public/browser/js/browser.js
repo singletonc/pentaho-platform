@@ -450,7 +450,6 @@ define([
 
       var filePath = clickedFile.obj.attr("path");
       const isRepoPath = isRepositoryPath(filePath);
-      fileButtons.enableButtons(isRepoPath);
 
       //Ajax request to check write permissions for file
       if( isRepoPath ) {
@@ -703,6 +702,11 @@ define([
 
           obj.file = response.children[i].file;
           obj.file.pathText = jQuery.i18n.prop('originText') + " " //i18n
+
+          if(!obj.file.objectId){
+            obj.file.objectId = obj.file.path;
+          }
+
           newResp.children.push(obj);
         }
       }
@@ -1010,6 +1014,14 @@ define([
           }
         });
       });
+
+      // TODO BACKLOG-40086: for now, disable all file actions for VFS Connections, i.e. isRepoPath = false
+      const selectedFilePath = fileClicked ? fileClicked.attr("path") : null;
+      if (selectedFilePath != null && buttonsType.enableButtons) {
+        const isRepoPath = isRepositoryPath(selectedFilePath);
+        buttonsType.enableButtons(isRepoPath);
+      }
+
       model.updateFolderButtons( folderClicked == undefined ? window.parent.HOME_FOLDER : folderClicked.attr("path") );
     },
 
@@ -1067,6 +1079,13 @@ define([
           }
         });
       });
+
+      // TODO BACKLOG-40086: for now, disable all file actions for VFS Connections, i.e. isRepoPath = false
+      const selectedFilePath = fileClicked ? fileClicked.attr("path") : null;
+      if (selectedFilePath != null && buttonsType.enableButtons) {
+        const isRepoPath = isRepositoryPath(selectedFilePath);
+        buttonsType.enableButtons(isRepoPath);
+      }
     },
 
     checkButtonsEnabled: function () {
@@ -1864,7 +1883,9 @@ define([
     doubleClickFile: function (event) {
       var path = $(event.currentTarget).attr("path");
       //if not trash item, try to open the file.
-      if (FileBrowser.fileBrowserModel.getLastClick() != "trashItem") {
+
+      //TODO BACKLOG-40086: disable double click actions on VFS Connection files for now. To be addressed in BACKLOG-40475
+      if (isRepositoryRootPath(path) && FileBrowser.fileBrowserModel.getLastClick() != "trashItem") {
         this.model.get("openFileHandler")(path, "run");
       }
     },
