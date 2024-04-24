@@ -97,6 +97,11 @@ define([
     return Encoder.encode("{0}", path);
   };
 
+  FileBrowser.encodeGenericFilePathComponents = function (path) {
+    const encodedFilePath = Encoder.encodeGenericFilePath(path);
+    return Encoder.encode("{0}", encodedFilePath);
+  }
+
   FileBrowser.setShowHiddenFiles = function (value) {
     this.showHiddenFiles = value;
   };
@@ -725,7 +730,7 @@ define([
 
     fetchData: function (path, callback) {
       var myself = this,
-          url = this.getFileListRequest(encodeGenericPath(path == null ? ":" : path)),
+          url = this.getFileListRequest(FileBrowser.encodeGenericFilePathComponents(path == null ? ":" : path)),
           localSequenceNumber = myself.get("sequenceNumber");
 
       $.ajax({
@@ -1260,7 +1265,7 @@ define([
         var myself = this;
 
         var url = CONTEXT_PATH + "plugin/scheduler-plugin/api/generic-files/"
-            + FileBrowser.encodePathComponents(encodeGenericPath(path))
+            + FileBrowser.encodeGenericFilePathComponents(path)
             + "/tree?depth=1&showHidden=" + myself.model.get("showHiddenFiles") + "&filter=FOLDERS";
         $.ajax({
           async: true,
@@ -1964,12 +1969,9 @@ define([
     return path === REPOSITORY_ROOT_PATH;
   }
 
-  function encodeGenericPath(path) {
-    return path.replaceAll(":", "~").replaceAll("/", ":");
-  }
-
   return {
     encodePathComponents: FileBrowser.encodePathComponents,
+    encodeGenericFilePathComponents: FileBrowser.encodeGenericFilePathComponents,
     setContainer: FileBrowser.setContainer,
     setOpenFileHandler: FileBrowser.setOpenFileHandler,
     setShowHiddenFiles: FileBrowser.setShowHiddenFiles,
