@@ -734,7 +734,7 @@ define([
 
     fetchData: function (path, callback) {
       var myself = this,
-          url = this.getFileListRequest(FileBrowser.encodeGenericFilePathComponents(path == null ? ":" : path)),
+          url = this.getFileListRequest(FileBrowser.encodeGenericFilePathComponents(path == null ? "/" : path)),
           localSequenceNumber = myself.get("sequenceNumber");
 
       $.ajax({
