@@ -193,9 +193,10 @@ define([
       }
     },
 
+    //TODO Only enable the open buttons for supported file types...
     enableButtons: function (enableButtons) {
       this.buttons.forEach((buttonDef) => {
-        if (buttonDef.id !== "separator") {
+        if (buttonDef.id !== "separator" && buttonDef.id !== "openButton" && buttonDef.id !== "openNewButton") {
           $("#" + buttonDef.id).prop("disabled", !enableButtons);
         }
       });

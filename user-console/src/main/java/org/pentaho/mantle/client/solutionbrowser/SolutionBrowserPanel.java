@@ -89,6 +89,9 @@ public class SolutionBrowserPanel extends HorizontalPanel {
 
   private static final String FILE_EXTENSION_DELIMETER = ".";
 
+  //TODO make sure we have the correct path separator
+  private static final char FILE_PATH_SEPARATOR = '/';
+
   private final int defaultSplitPosition = 220; //$NON-NLS-1$
 
   private SplitLayoutPanel navigatorAndContentSplit = new SplitLayoutPanel() {
@@ -392,6 +395,17 @@ public class SolutionBrowserPanel extends HorizontalPanel {
     return NameUtils.URLEncode( id );
   }
 
+  private String encodeGenericFilePath( String path ){
+    return NameUtils.URLEncode( encodePath(path) );
+  }
+
+  //TODO use GenericFilenameUtils.encodePath( String path ) instead. Hitting build issue right now on @NonNull and @Nullable annotations
+  public static native String encodePath( String path )
+    /*-{
+      return $wnd.pho.Encoder.encodeGenericFilePath(path);
+    }-*/;
+
+
   public List<String> getExecutableFileExtensions() {
     return executableFileExtensions;
   }
@@ -403,7 +417,12 @@ public class SolutionBrowserPanel extends HorizontalPanel {
     } catch ( IllegalArgumentException e ) {
       // bad mode passed in, using default
     }
-    openFile( fileNameWithPath, realMode );
+
+    if( isRepositoryPath( fileNameWithPath ) ) {
+      openFile( fileNameWithPath, realMode );
+    } else {
+      openGenericFile( fileNameWithPath, realMode);
+    }
   }
 
   public void getFile( final String solutionPath, final SolutionFileHandler handler ) {
@@ -435,6 +454,35 @@ public class SolutionBrowserPanel extends HorizontalPanel {
       } );
     } catch ( RequestException e ) {
       // showError(e);
+    }
+  }
+
+  //TODO copy/pasted rough draft, MVP/POC implementation
+  private void openGenericFile( String filePath, COMMAND mode ) {
+    String url = null;
+    String extension = ""; //$NON-NLS-1$
+
+    //TODO Decode special characters in fileName so they dont show up URL encoded in, for example, the tab name
+    String fileName = filePath.substring( filePath.lastIndexOf( FILE_PATH_SEPARATOR ) +1 );
+    if ( fileName.lastIndexOf( FILE_EXTENSION_DELIMETER ) > 0 ) { //$NON-NLS-1$
+      extension = fileName.substring( fileName.lastIndexOf( FILE_EXTENSION_DELIMETER ) + 1 ); //$NON-NLS-1$
+    }
+    if ( !executableFileExtensions.contains( extension ) ) {
+      if ( isSupportedExtension( extension ) ) {
+        showPluginError( fileName );
+        return;
+      }
+      url = getPath() + "plugin/scheduler-plugin/api/generic-files/" + encodeGenericFilePath( filePath ) + "/content"; //$NON-NLS-1$ //$NON-NLS-2$
+    }
+    // force to open pdf files in another window due to issues with pdf readers in IE browsers
+    // via class added on themeResources for IE browsers
+    boolean pdfReaderEmbeded = RootPanel.getBodyElement().getClassName().contains( "pdfReaderEmbeded" );
+    if ( mode == FileCommand.COMMAND.NEWWINDOW || ( extension.equals( "pdf" ) && pdfReaderEmbeded ) ) {
+      Window.open( url, "_blank", "menubar=yes,location=no,resizable=yes,scrollbars=yes,status=no" ); //$NON-NLS-1$ //$NON-NLS-2$
+    } else {
+      PerspectiveManager.getInstance().setPerspective( PerspectiveManager.OPENED_PERSPECTIVE );
+      contentTabPanel.showNewURLTab( fileName, fileName, url, true );
+      addRecent( filePath, fileName );
     }
   }
 
@@ -470,6 +518,7 @@ public class SolutionBrowserPanel extends HorizontalPanel {
     }
   }
 
+  //TODO if we can use IGenericFile here, we could better integrate the PVFS flow into existing code
   public void openFile( final RepositoryFile repositoryFile, final FileCommand.COMMAND mode ) {
 
     String fileNameWithPath = repositoryFile.getPath();
@@ -494,7 +543,7 @@ public class SolutionBrowserPanel extends HorizontalPanel {
           showPluginError( repositoryFile.getName() );
           return;
         }
-        url = getPath() + "api/repos/" + pathToId( fileNameWithPath ) + "/content"; //$NON-NLS-1$ //$NON-NLS-2$
+        url = getPath() + "plugin/scheduler-plugin/api/generic-files/" + encodeGenericFilePath( fileNameWithPath ) + "/content"; //$NON-NLS-1$ //$NON-NLS-2$
       } else {
         ContentTypePlugin plugin = PluginOptionsHelper.getContentTypePlugin( fileNameWithPath );
         url =
@@ -837,4 +886,8 @@ public class SolutionBrowserPanel extends HorizontalPanel {
   private native void createSchedule( final String repositoryFileId, final String repositoryFilePath )/*-{
     $wnd.pho.createSchedule( repositoryFileId, repositoryFilePath );
   }-*/;
+
+  private boolean isRepositoryPath( String path ){
+    return (path.charAt( 0 ) == FILE_PATH_SEPARATOR);
+  }
 }
