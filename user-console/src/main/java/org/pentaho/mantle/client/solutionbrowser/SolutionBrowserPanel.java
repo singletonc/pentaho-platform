@@ -29,6 +29,7 @@ import com.google.gwt.http.client.RequestBuilder;
 import com.google.gwt.http.client.RequestCallback;
 import com.google.gwt.http.client.RequestException;
 import com.google.gwt.http.client.Response;
+import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
@@ -418,6 +419,10 @@ public class SolutionBrowserPanel extends HorizontalPanel {
       // bad mode passed in, using default
     }
 
+    /*
+    TODO BACKLOG-40475: For now, we only support RUN ("Open") and NEWWINDOW ("Open in new window") modes for PVFS files.
+     This logic can be better integrated into the existing flow in a future release.
+     */
     if( isRepositoryPath( fileNameWithPath ) ) {
       openFile( fileNameWithPath, realMode );
     } else {
@@ -462,8 +467,17 @@ public class SolutionBrowserPanel extends HorizontalPanel {
     String url = null;
     String extension = ""; //$NON-NLS-1$
 
-    //TODO Decode special characters in fileName so they dont show up URL encoded in, for example, the tab name
+    //Some PVFS providers URL encode some characters...
+    //TODO this is not working properly... we have encoded characters sometimes and sometimes not, if there's a standalone % then this will crash and burn
+    //    String fileName = URL.decode( filePath.substring( filePath.lastIndexOf( FILE_PATH_SEPARATOR ) +1 ) );
     String fileName = filePath.substring( filePath.lastIndexOf( FILE_PATH_SEPARATOR ) +1 );
+
+    try{
+      fileName = URL.decode( fileName ).replace( "%23", "#" );
+    } catch ( Exception e ) {
+      //TODO refine Exception to narrower class
+    }
+
     if ( fileName.lastIndexOf( FILE_EXTENSION_DELIMETER ) > 0 ) { //$NON-NLS-1$
       extension = fileName.substring( fileName.lastIndexOf( FILE_EXTENSION_DELIMETER ) + 1 ); //$NON-NLS-1$
     }
