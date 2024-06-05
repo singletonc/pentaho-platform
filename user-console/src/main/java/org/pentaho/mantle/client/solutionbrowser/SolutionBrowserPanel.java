@@ -362,6 +362,10 @@ public class SolutionBrowserPanel extends HorizontalPanel {
       //CHECKSTYLE IGNORE LineLength FOR NEXT 1 LINES
       solutionNavigator.@org.pentaho.mantle.client.solutionbrowser.SolutionBrowserPanel::showPluginError(Ljava/lang/String;)(filename);
     }
+    $wnd.mantle_showUnsupportedFiletypeError = function (filename, extension) {
+      //CHECKSTYLE IGNORE LineLength FOR NEXT 1 LINES
+      solutionNavigator.@org.pentaho.mantle.client.solutionbrowser.SolutionBrowserPanel::showUnsupportedFiletypeError(Ljava/lang/String;Ljava/lang/String;)(filename, extension);
+    }
     $wnd.mantle_isSupportedExtension = function (extension) {
       //CHECKSTYLE IGNORE LineLength FOR NEXT 1 LINES
       return solutionNavigator.@org.pentaho.mantle.client.solutionbrowser.SolutionBrowserPanel::isSupportedExtension(Ljava/lang/String;)(extension);
@@ -369,8 +373,16 @@ public class SolutionBrowserPanel extends HorizontalPanel {
   }-*/;
 
   public void showPluginError( String filename ) {
+    showError( Messages.getString( "error.NoPlugin" ), Messages.getString( "error.NoPluginText", filename ) );
+  }
+
+  public void showUnsupportedFiletypeError( String fileName, String extension ){
+    showError( "Unsupported File Type", "Cannot open file \"" + fileName + "\" with unsupported extension \"" + extension +"\".");
+  }
+
+  private void showError( String dialogTitle, String errorMessage ) {
     InfoDialog dialogBox =
-      new InfoDialog( Messages.getString( "error.NoPlugin" ), Messages.getString( "error.NoPluginText", filename ), true, false, true ); //$NON-NLS-1$ $NON-NLS-2$
+      new InfoDialog( dialogTitle, errorMessage, true, false, true ); //$NON-NLS-1$ $NON-NLS-2$
     dialogBox.setWidth( "350px" );
     dialogBox.center();
   }
@@ -487,6 +499,9 @@ public class SolutionBrowserPanel extends HorizontalPanel {
         return;
       }
       url = getPath() + "plugin/scheduler-plugin/api/generic-files/" + encodeGenericFilePath( filePath ) + "/content"; //$NON-NLS-1$ //$NON-NLS-2$
+    } else {
+      showUnsupportedFiletypeError(fileName, extension);
+      return;
     }
     // force to open pdf files in another window due to issues with pdf readers in IE browsers
     // via class added on themeResources for IE browsers

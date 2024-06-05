@@ -433,29 +433,31 @@ define([
       this.set("clickedFile", clickedFile);
 
       var clickedFolder = this.get("clickedFolder");
-      var didClickTrash = (!!clickedFolder) && clickedFolder.obj.attr("path") == ".trash";
-      if (didClickTrash) {
-        this.updateTrashItemLastClick();
-      }
-
-      if ( clickedFile == null ) {
-        fileButtons.updateFilePermissionButtons(false);
-        fileButtons.canDownload(false);
-        return;
-      }
-
-      if (!didClickTrash) {
-        // BISERVER-9127 - Provide the selected path to the FileButtons object
-        fileButtons.onFileSelect(clickedFile.obj.attr("path"));
-      }
-
-      fileButtons.canDownload(this.get("canDownload"));
 
       var filePath = clickedFile.obj.attr("path");
       const isRepoPath = isRepositoryPath(filePath);
 
+      //Repository Only Logic
       //Ajax request to check write permissions for file
       if( isRepoPath ) {
+        var didClickTrash = (!!clickedFolder) && clickedFolder.obj.attr("path") == ".trash";
+        if (didClickTrash) {
+          this.updateTrashItemLastClick();
+        }
+
+        if ( clickedFile == null ) {
+          fileButtons.updateFilePermissionButtons(false);
+          fileButtons.canDownload(false);
+          return;
+        }
+
+        if (!didClickTrash) {
+          // BISERVER-9127 - Provide the selected path to the FileButtons object
+          fileButtons.onFileSelect(clickedFile.obj.attr("path"));
+        }
+
+        fileButtons.canDownload(this.get("canDownload"));
+
         filePath = Encoder.encodeRepositoryPath(filePath);
 
         $.ajax({
@@ -1894,8 +1896,7 @@ define([
       var path = $(event.currentTarget).attr("path");
       //if not trash item, try to open the file.
 
-      //TODO BACKLOG-40086: disable double click actions on VFS Connection files for now. To be addressed in BACKLOG-40475
-      if (isRepositoryRootPath(path) && FileBrowser.fileBrowserModel.getLastClick() != "trashItem") {
+      if (FileBrowser.fileBrowserModel.getLastClick() != "trashItem") {
         this.model.get("openFileHandler")(path, "run");
       }
     },

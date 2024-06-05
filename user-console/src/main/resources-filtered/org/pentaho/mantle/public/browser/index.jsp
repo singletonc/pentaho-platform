@@ -71,10 +71,12 @@
     // show the opened perspective
     var extension = path.split(".").pop();
     var hasPlugin = window.parent.PluginOptionHelper_hasPlugin(path);
+    var filename = path.split('\\').pop().split('/').pop();
     if (window.parent.mantle_isSupportedExtension(extension) && !hasPlugin) {
-        var filename = path.split('\\').pop().split('/').pop();
         window.parent.mantle_showPluginError(filename);
         return;
+    } else if (!window.parent.mantle_isSupportedExtension(extension)){
+      window.parent.mantle_showUnsupportedFiletypeError(filename, extension);
     }
     // force to open pdf files in another window due to issues with pdf readers in IE browsers
     // via class added on themeResources for IE browsers
