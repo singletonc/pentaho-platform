@@ -75,9 +75,10 @@
     if (window.parent.mantle_isSupportedExtension(extension) && !hasPlugin) {
         window.parent.mantle_showPluginError(filename);
         return;
-    } else if (!window.parent.mantle_isSupportedExtension(extension)){
-      window.parent.mantle_showUnsupportedFiletypeError(filename, extension);
     }
+    // else if (!window.parent.mantle_isSupportedExtension(extension)){
+    //   window.parent.mantle_showUnsupportedFiletypeError(filename, extension);
+    // } TODO
     // force to open pdf files in another window due to issues with pdf readers in IE browsers
     // via class added on themeResources for IE browsers
     if (!($("body").hasClass("pdfReaderEmbeded") && extension == "pdf")) {

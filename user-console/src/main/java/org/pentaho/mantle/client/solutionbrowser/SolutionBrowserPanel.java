@@ -51,6 +51,7 @@ import com.google.gwt.user.client.ui.Widget;
 import org.pentaho.gwt.widgets.client.dialogs.MessageDialogBox;
 import org.pentaho.gwt.widgets.client.dialogs.PromptDialogBox;
 import org.pentaho.gwt.widgets.client.filechooser.RepositoryFile;
+import org.pentaho.gwt.widgets.client.genericfile.GenericFileNameUtils;
 import org.pentaho.gwt.widgets.client.utils.NameUtils;
 import org.pentaho.mantle.client.EmptyRequestCallback;
 import org.pentaho.mantle.client.commands.AbstractCommand;
@@ -409,10 +410,11 @@ public class SolutionBrowserPanel extends HorizontalPanel {
   }
 
   private String encodeGenericFilePath( String path ){
-    return NameUtils.URLEncode( encodePath(path) );
+    //return NameUtils.URLEncode( encodePath(path) );
+    return NameUtils.URLEncode( GenericFileNameUtils.encodePath( path ) );
   }
 
-  //TODO use GenericFilenameUtils.encodePath( String path ) instead. Hitting build issue right now on @NonNull and @Nullable annotations
+  //TODO use GenericFilenameUtils.encodePath( String path ) instead. Hitting build issue right now on @NonNull and @Nullable annotations. Adding `spotbugs-annotations` as a dependency didn't resolve the problem.
   public static native String encodePath( String path )
     /*-{
       return $wnd.pho.Encoder.encodeGenericFilePath(path);
@@ -435,7 +437,7 @@ public class SolutionBrowserPanel extends HorizontalPanel {
     TODO BACKLOG-40475: For now, we only support RUN ("Open") and NEWWINDOW ("Open in new window") modes for PVFS files.
      This logic can be better integrated into the existing flow in a future release.
      */
-    if( isRepositoryPath( fileNameWithPath ) ) {
+    if( GenericFileNameUtils.isRepositoryPath( fileNameWithPath ) ) {
       openFile( fileNameWithPath, realMode );
     } else {
       openGenericFile( fileNameWithPath, realMode);
@@ -498,11 +500,13 @@ public class SolutionBrowserPanel extends HorizontalPanel {
         showPluginError( fileName );
         return;
       }
-      url = getPath() + "plugin/scheduler-plugin/api/generic-files/" + encodeGenericFilePath( filePath ) + "/content"; //$NON-NLS-1$ //$NON-NLS-2$
-    } else {
-      showUnsupportedFiletypeError(fileName, extension);
-      return;
+      url = getPath() + "plugin/scheduler-plugin/api/generic-files/" + encodeGenericFilePath( filePath )
+        + "/content"; //$NON-NLS-1$ //$NON-NLS-2$
     }
+      //    } else { TODO
+//      showUnsupportedFiletypeError(fileName, extension);
+//      return;
+//    }
     // force to open pdf files in another window due to issues with pdf readers in IE browsers
     // via class added on themeResources for IE browsers
     boolean pdfReaderEmbeded = RootPanel.getBodyElement().getClassName().contains( "pdfReaderEmbeded" );
