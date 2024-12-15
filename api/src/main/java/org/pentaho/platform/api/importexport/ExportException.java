@@ -11,7 +11,7 @@
  ******************************************************************************/
 
 
-package org.pentaho.platform.plugin.services.importexport;
+package org.pentaho.platform.api.importexport;
 
 /*
  * This program is free software; you can redistribute it and/or modify it under the

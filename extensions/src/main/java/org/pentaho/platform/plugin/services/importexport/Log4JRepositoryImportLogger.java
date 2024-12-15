@@ -15,6 +15,8 @@ package org.pentaho.platform.plugin.services.importexport;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.StringLayout;
 
 import java.io.OutputStream;
 
@@ -31,6 +33,11 @@ public class Log4JRepositoryImportLogger implements IRepositoryImportLogger {
   public Log4JRepositoryImportLogger() {
   }
 
+  public void startJob( OutputStream outputStream, String importRootPath, Level logLevel, StringLayout layout ) {
+    repositoryImportLog.set( new Log4JRepositoryImportLog( outputStream, importRootPath, logLevel, layout ) );
+    getLog4JRepositoryImportLog().setCurrentFilePath( getLog4JRepositoryImportLog().getImportRootPath() );
+    getLogger().info( "Start Import Job" );
+  }
   public void startJob( OutputStream outputStream, String importRootPath, Level logLevel ) {
     repositoryImportLog.set( new Log4JRepositoryImportLog( outputStream, importRootPath, logLevel ) );
     getLog4JRepositoryImportLog().setCurrentFilePath( getLog4JRepositoryImportLog().getImportRootPath() );
@@ -45,7 +52,6 @@ public class Log4JRepositoryImportLogger implements IRepositoryImportLogger {
 
   public void setCurrentFilePath( String currentFilePath ) {
     getLog4JRepositoryImportLog().setCurrentFilePath( currentFilePath );
-    getLogger().info( "Start File Import" );
   }
 
   public void info( String s ) {

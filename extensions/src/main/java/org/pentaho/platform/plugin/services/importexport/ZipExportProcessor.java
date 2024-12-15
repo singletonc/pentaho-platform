@@ -23,6 +23,7 @@ import org.pentaho.platform.api.repository2.unified.IUnifiedRepository;
 import org.pentaho.platform.api.repository2.unified.RepositoryFile;
 import org.pentaho.platform.api.repository2.unified.RepositoryFileAcl;
 import org.pentaho.platform.api.repository2.unified.RepositoryRequest;
+import org.pentaho.platform.api.importexport.ExportException;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.plugin.services.importexport.exportManifest.ExportManifest;
@@ -180,13 +181,18 @@ public class ZipExportProcessor extends BaseExportProcessor {
       try ( InputStream is = exportHandler.doExport( repositoryFile, filePath ) ) {
         // if we don't get a valid input stream back, skip it
         if ( is != null ) {
+          getRepositoryExportLogger().debug("Adding repository object [ " + repositoryFile.getName() + " ] to the manifest");
           addToManifest( repositoryFile );
+          getRepositoryExportLogger().debug("Starting to add repository object [ " + repositoryFile.getName() + " ] to the export bundle");
           String zipEntryName = getFixedZipEntryName( repositoryFile, filePath );
           ZipEntry entry = new ZipEntry( zipEntryName );
           zos.putNextEntry( entry );
           IOUtils.copy( is, outputStream );
           zos.closeEntry();
+          getRepositoryExportLogger().debug("Successfully added repository object [ " + repositoryFile.getName() + " ] to the export bundle");
+          getRepositoryExportLogger().trace("Starting to create locale entry for repository object [ " + ( (repositoryFile != null) ? repositoryFile.getName(): "") + " ] ");
           createLocales( repositoryFile, filePath, repositoryFile.isFolder(), outputStream );
+          getRepositoryExportLogger().trace("Finished creating locale entry for repository object [ " + ( (repositoryFile != null) ? repositoryFile.getName(): "") + " ] ");
         }
       }
     }
@@ -217,31 +223,41 @@ public class ZipExportProcessor extends BaseExportProcessor {
   @Override
   public void exportDirectory( RepositoryFile repositoryDir, OutputStream outputStream, String filePath ) throws
       ExportException, IOException {
+    getRepositoryExportLogger().debug("Adding repository object [ " + repositoryDir.getName() + " ] to the manifest");
     addToManifest( repositoryDir );
     List<RepositoryFile> children = getUnifiedRepository().getChildren( new RepositoryRequest(
         String.valueOf( repositoryDir.getId() ), true, 1, null ) );
+    getRepositoryExportLogger().debug("Found  [ " + children.size() + " ] children in folder [ " + repositoryDir.getName() + " ]");
     for ( RepositoryFile repositoryFile : children ) {
       // exclude 'etc' folder - datasources and etc.
       if ( isExportCandidate( repositoryFile.getPath() ) ) {
+        getRepositoryExportLogger().trace("Repository object is a candidate for export [ " + repositoryFile.getName() + " ]");
         if ( repositoryFile.isFolder() ) {
+          getRepositoryExportLogger().debug("Repository Object [ " + repositoryFile.getName() + " ] is a folder. Adding it to the export bundle");
           if ( outputStream.getClass().isAssignableFrom( ZipOutputStream.class ) ) {
             ZipOutputStream zos = (ZipOutputStream) outputStream;
             String zipEntryName = getFixedZipEntryName( repositoryFile, filePath );
             ZipEntry entry = new ZipEntry( zipEntryName );
             zos.putNextEntry( entry );
+            getRepositoryExportLogger().debug("Successfully added repository Object [ " + repositoryFile.getName() + " ] to the export bundle");
           }
           exportDirectory( repositoryFile, outputStream, filePath );
         } else {
           try {
+            getRepositoryExportLogger().debug("Repository Object [ " + repositoryFile.getName() + " ] is a file. Adding it to the export bundle");
             exportFile( repositoryFile, outputStream, filePath );
           } catch ( ZipException e ) {
             // possible duplicate entry, log it and continue on with the other files in the directory
             log.debug( e.getMessage(), e );
           }
         }
+      } else {
+        getRepositoryExportLogger().trace("Repository object is a candidate for export [ " + repositoryFile.getName() + " ] skipping it");
       }
     }
+    getRepositoryExportLogger().trace("Starting to create locale entry for repository object [ " + repositoryDir.getName() + " ] ");
     createLocales( repositoryDir, filePath, repositoryDir.isFolder(), outputStream );
+    getRepositoryExportLogger().trace("Finished creating locale entry for repository object [ " + repositoryDir.getName() + " ] ");
   }
 
   protected boolean isExportCandidate( String path ) {

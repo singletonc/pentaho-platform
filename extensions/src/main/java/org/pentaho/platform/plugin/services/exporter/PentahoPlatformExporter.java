@@ -27,27 +27,18 @@ import org.pentaho.platform.api.repository.datasource.DatasourceMgmtServiceExcep
 import org.pentaho.platform.api.repository.datasource.IDatasourceMgmtService;
 import org.pentaho.platform.api.repository2.unified.IUnifiedRepository;
 import org.pentaho.platform.api.repository2.unified.RepositoryFile;
-import org.pentaho.platform.api.scheduler2.IJobScheduleRequest;
 import org.pentaho.platform.api.scheduler2.IScheduler;
-import org.pentaho.platform.api.scheduler2.IJob;
-import org.pentaho.platform.api.scheduler2.SchedulerException;
 import org.pentaho.platform.api.usersettings.IAnyUserSettingService;
 import org.pentaho.platform.api.usersettings.IUserSettingService;
 import org.pentaho.platform.api.usersettings.pojo.IUserSetting;
-import org.pentaho.platform.api.util.IExportHelper;
+import org.pentaho.platform.api.importexport.ExportException;
+import org.pentaho.platform.api.importexport.IExportHelper;
 import org.pentaho.platform.api.util.IPentahoPlatformExporter;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.engine.core.system.TenantUtils;
 import org.pentaho.platform.plugin.action.mondrian.catalog.IMondrianCatalogService;
 import org.pentaho.platform.plugin.action.mondrian.catalog.MondrianCatalog;
-import org.pentaho.platform.plugin.services.importexport.DatabaseConnectionConverter;
-import org.pentaho.platform.plugin.services.importexport.DefaultExportHandler;
-import org.pentaho.platform.plugin.services.importexport.ExportException;
-import org.pentaho.platform.plugin.services.importexport.ExportFileNameEncoder;
-import org.pentaho.platform.plugin.services.importexport.ExportManifestUserSetting;
-import org.pentaho.platform.plugin.services.importexport.RoleExport;
-import org.pentaho.platform.plugin.services.importexport.UserExport;
-import org.pentaho.platform.plugin.services.importexport.ZipExportProcessor;
+import org.pentaho.platform.plugin.services.importexport.*;
 import org.pentaho.platform.plugin.services.importexport.exportManifest.Parameters;
 import org.pentaho.platform.plugin.services.importexport.exportManifest.bindings.ExportManifestMetaStore;
 import org.pentaho.platform.plugin.services.importexport.exportManifest.bindings.ExportManifestMetadata;
@@ -118,7 +109,11 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
 
   public void runExportHelpers() {
     for ( IExportHelper helper : exportHelpers ) {
-      helper.doExport( this );
+      try {
+        helper.doExport( this );
+      } catch ( ExportException exportException ) {
+        getRepositoryExportLogger().error("Error exporting component [ " + helper.getName() + " ] Cause [ " + exportException.getLocalizedMessage() + " ]");
+      }
     }
   }
 
@@ -130,6 +125,7 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
   @Override
   public File performExport( RepositoryFile exportRepositoryFile ) throws ExportException, IOException {
 
+    getRepositoryExportLogger().info("Start: Export process");
     // always export root
     exportRepositoryFile = getUnifiedRepository().getFile( ROOT );
 
@@ -139,7 +135,13 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
 
     zos = new ZipOutputStream( new FileOutputStream( exportFile ) );
 
-    exportFileContent( exportRepositoryFile );
+    try {
+      exportFileContent( exportRepositoryFile );
+    } catch ( ExportException | IOException exception ) {
+      getRepositoryExportLogger().error( "Error while export file content. Cause ["
+              + exception.getLocalizedMessage() + " ]");
+    }
+
     exportDatasources();
     exportMondrianSchemas();
     exportMetadataModels();
@@ -157,7 +159,7 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
         getExportManifest().toXml( zos );
       } catch ( Exception e ) {
         // todo: add to messages.properties
-        log.error( "Error generating export XML" );
+        getRepositoryExportLogger().error("Error generating export XML");
       }
 
       zos.closeEntry();
@@ -169,34 +171,56 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
     initManifest();
     zos = null;
 
+    getRepositoryExportLogger().info("End: Export process");
+
     return exportFile;
   }
 
   protected void exportDatasources() {
-    log.debug( "export datasources" );
+    getRepositoryExportLogger().info("*************************** Start [ Export JDBC Datasource(s) ] *******************************");
     // get all connection to export
+    int successfulExportJDBCDSCount = 0;
+    int databaseConnectionsSize = 0;
     try {
-      for ( IDatabaseConnection datasource : getDatasourceMgmtService().getDatasources() ) {
+      List<IDatabaseConnection> databaseConnections = getDatasourceMgmtService().getDatasources();
+      if ( databaseConnections != null ) {
+        databaseConnectionsSize = databaseConnections.size();
+        getRepositoryExportLogger().info("Found [ " + databaseConnectionsSize + " ] JDBC datasource(s)");
+      }
+      for ( IDatabaseConnection datasource : databaseConnections ) {
         if ( datasource instanceof org.pentaho.database.model.DatabaseConnection ) {
+          getRepositoryExportLogger().debug("Starting to export datasource [ " + datasource.getName() + " ]");
           getExportManifest().addDatasource( DatabaseConnectionConverter.model2export( datasource ) );
+          getRepositoryExportLogger().debug("Finished exporting datasource [ " + datasource.getName() + " ]");
+          successfulExportJDBCDSCount++;
         }
       }
     } catch ( DatasourceMgmtServiceException e ) {
-      log.warn( e.getMessage(), e );
+      getRepositoryExportLogger().warn( "Unable to retrieve JDBC datasource(s). Cause [" + e.getMessage() + " ]" );
+      getRepositoryExportLogger().debug( "Unable to retrieve JDBC datasource(s). Cause [" + e.getMessage() + " ]", e );
     }
+    getRepositoryExportLogger().info("Successfully exported [ " + successfulExportJDBCDSCount + " ]" +
+                    " out of [ " +  databaseConnectionsSize + " ] JDBC datasource(s)");
+    getRepositoryExportLogger().info("*********************************  End [ Export JDBC datasource(s) ] *******************************");
   }
 
   protected void exportMetadataModels() {
-    log.debug( "export metadata models" );
-
+    getRepositoryExportLogger().info("***********************  Start [ Export metadata datasource(s) ]*************************");
+    int successfulExportMetadataDSCount = 0;
+    int metadataDSSize = 0;
     // get all of the metadata models
     Set<String> domainIds = getMetadataDomainRepository().getDomainIds();
+    if (domainIds != null ) {
+      metadataDSSize = domainIds.size();
+      getRepositoryExportLogger().info("Found [ " + metadataDSSize + " ] metadata models to export");
+    }
 
     for ( String domainId : domainIds ) {
       // get all of the files for this model
       Map<String, InputStream> domainFilesData = getDomainFilesData( domainId );
-
+      getRepositoryExportLogger().debug("Starting to export metadata model [ " + domainId + " ]");
       for ( String fileName : domainFilesData.keySet() ) {
+        getRepositoryExportLogger().trace("Adding metadata file [ " + fileName + " ]");
         // write the file to the zip
         String metadataFilePath = METADATA_PATH_IN_ZIP + fileName;
         if ( !metadataFilePath.endsWith( ".xmi" ) ) {
@@ -218,9 +242,9 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
           metadata.setDomainId( domainId );
           metadata.setFile( metadataFilePath );
           getExportManifest().addMetadata( metadata );
-
+          successfulExportMetadataDSCount++;
         } catch ( IOException e ) {
-          log.warn( e.getMessage(), e );
+          getRepositoryExportLogger().warn("Error exporting metadata datasource [ " + e.getMessage() + " ]", e);
         } finally {
           IOUtils.closeQuietly( inputStream );
           try {
@@ -229,22 +253,33 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
             // can't close the entry of input stream
           }
         }
+        getRepositoryExportLogger().trace("Successfully added metadata file [ " + fileName + " ] to the manifest" );
       }
+      getRepositoryExportLogger().debug("Successfully exported metadata model [ " + domainId + " ]");
     }
+    getRepositoryExportLogger().info("Successfully exported [ " + successfulExportMetadataDSCount + " ]" +
+            " out of [ " +  metadataDSSize + " ] Metadata datasource(s)");
+    getRepositoryExportLogger().info("*********************************  End [ Export Metadata datasource(s) ] *******************************");
   }
 
   protected void exportMondrianSchemas() {
-    log.debug( "export mondrian schemas" );
-
+    getRepositoryExportLogger().info("*********************************  Start [ Export Mondrian datasource(s) ] *******************************");
     // Get the mondrian catalogs available in the repo
+    int successfulExportMondrianDSCount = 0;
+    int mondrianDSSize = 0;
     List<MondrianCatalog> catalogs = getMondrianCatalogService().listCatalogs( getSession(), false );
+    if ( catalogs != null ) {
+      mondrianDSSize = catalogs.size();
+      getRepositoryExportLogger().info("Found [ " + mondrianDSSize + " ] mondrian datasource(s) to export");
+    }
     for ( MondrianCatalog catalog : catalogs ) {
-
+      getRepositoryExportLogger().debug("Starting to export mondrian datasource [ " + catalog.getName() + " ]");
       // get the files for this catalog
       Map<String, InputStream> files = getMondrianCatalogRepositoryHelper().getModrianSchemaFiles( catalog.getName() );
 
       ExportManifestMondrian mondrian = new ExportManifestMondrian();
       for ( String fileName : files.keySet() ) {
+        getRepositoryExportLogger().trace("Starting to add filename [ " + fileName + " ] with datasource [" + catalog.getName() + " ] to the export bundle");
 
         // write the file to the zip
         String path = ANALYSIS_PATH_IN_ZIP + catalog.getName() + "/" + fileName;
@@ -286,7 +321,7 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
           zos.putNextEntry( zipEntry );
           IOUtils.copy( inputStream, zos );
         } catch ( IOException e ) {
-          log.warn( e.getMessage(), e );
+          getRepositoryExportLogger().warn("Error exporting mondrian datasource [ " + e.getMessage() + " ]", e);
         } finally {
           IOUtils.closeQuietly( inputStream );
           try {
@@ -298,8 +333,13 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
       }
       if ( mondrian.getCatalogName() != null && mondrian.getFile() != null ) {
         getExportManifest().addMondrian( mondrian );
+        getRepositoryExportLogger().debug("Successfully added filename [ " + mondrian.getFile() + " ] with catalog [" + mondrian.getCatalogName() + " ] to the export bundle");
+        successfulExportMondrianDSCount++;
       }
     }
+    getRepositoryExportLogger().info("Successfully exported [ " + successfulExportMondrianDSCount + " ]" +
+            " out of [ " +  mondrianDSSize + " ] Mondrian datasource(s)");
+    getRepositoryExportLogger().info("*********************************  End [ Export Mondrian datasource(s) ] *******************************");
   }
 
   protected boolean parseXmlaEnabled( String dataSourceInfo ) {
@@ -315,7 +355,9 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
   }
 
   protected void exportUsersAndRoles() {
-    log.debug( "export users & roles" );
+    getRepositoryExportLogger().info("*********************************  Start [ Export Users ] *******************************");
+    int successfulExportUsers = 0;
+    int usersSize = 0;
 
     IUserRoleListService userRoleListService = PentahoSystem.get( IUserRoleListService.class );
     UserDetailsService userDetailsService = PentahoSystem.get( UserDetailsService.class );
@@ -329,74 +371,111 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
 
     //User Export
     List<String> userList = userRoleListService.getAllUsers( tenant );
+    if ( userList != null ) {
+      usersSize = userList.size();
+      getRepositoryExportLogger().info("Found [ " + usersSize + " ] users to export");
+    }
     for ( String user : userList ) {
+      getRepositoryExportLogger().debug("Starting export of user [ " + user + " ] ");
       UserExport userExport = new UserExport();
       userExport.setUsername( user );
       userExport.setPassword( userDetailsService.loadUserByUsername( user ).getPassword() );
 
       for ( String role : userRoleListService.getRolesForUser( tenant, user ) ) {
+        getRepositoryExportLogger().trace("user [ " + user + " ] has an associated role [ " + role + " ]");
         userExport.setRole( role );
       }
 
       if ( service != null && service instanceof IAnyUserSettingService ) {
+        getRepositoryExportLogger().debug("Starting export of user specific settings for user [ " + user + " ] ");
         IAnyUserSettingService userSettings = (IAnyUserSettingService) service;
         List<IUserSetting> settings = userSettings.getUserSettings( user );
         if ( settings != null ) {
           for ( IUserSetting setting : settings ) {
+            getRepositoryExportLogger().debug("Adding user specific setting [ "
+                    + setting.getSettingName() + " ] with value [ " + setting.getSettingValue() + " ] to backup");
             userExport.addUserSetting( new ExportManifestUserSetting( setting ) );
+            getRepositoryExportLogger().debug("Successfully added user specific setting [ "
+                    + setting.getSettingName() + " ] with value [ " + setting.getSettingValue() + " ] to backup");
           }
         }
+        getRepositoryExportLogger().debug("Finished export of user specific settings for user [ " + user + " ] ");
       }
 
       this.getExportManifest().addUserExport( userExport );
+      successfulExportUsers++;
+      getRepositoryExportLogger().debug("Successful export of user [ " + user + " ] ");
     }
 
     // export the global user settings
     if ( service != null ) {
+      getRepositoryExportLogger().debug("Starting export of global user settings");
       List<IUserSetting> globalUserSettings = service.getGlobalUserSettings();
       if ( globalUserSettings != null ) {
         for ( IUserSetting setting : globalUserSettings ) {
           getExportManifest().addGlobalUserSetting( new ExportManifestUserSetting( setting ) );
         }
       }
+      getRepositoryExportLogger().debug("Finished export of global user settings");
     }
+
+    getRepositoryExportLogger().info("Successfully exported [ " + successfulExportUsers + " ]" +
+            " out of [ " +  usersSize + " ] User(s)");
+    getRepositoryExportLogger().info("*********************************  [ End: Export User(s) ] *******************************");
+    getRepositoryExportLogger().info("*********************************  [ Start: Export Role(s) ] *******************************");
+    int successfulExportRoles = 0;
+    int rolesSize = 0;
 
     //RoleExport
     List<String> roles = userRoleListService.getAllRoles();
+    if ( roles != null ) {
+      rolesSize = roles.size();
+      getRepositoryExportLogger().info("Found [ " + rolesSize + " ] roles to export");
+    }
     for ( String role : roles ) {
+      getRepositoryExportLogger().debug("Starting export of role [ " + role + " ] ");
       RoleExport roleExport = new RoleExport();
       roleExport.setRolename( role );
       roleExport.setPermission( roleBindingDao.getRoleBindingStruct( null ).bindingMap.get( role ) );
       exportManifest.addRoleExport( roleExport );
+      successfulExportRoles++;
+      getRepositoryExportLogger().debug("Finished export of role [ " + role + " ] ");
     }
+    getRepositoryExportLogger().info("Successfully exported [ " + successfulExportRoles + " ]" +
+            " out of [ " +  rolesSize + " ] role(s)");
+    getRepositoryExportLogger().info("*********************************  [ End: Export Role(s) ] *******************************");
   }
 
   protected void exportMetastore() throws IOException {
-    log.debug( "export the metastore" );
+    getRepositoryExportLogger().info("*********************************  [ Start: Export metastore ] *******************************");
     try {
+      getRepositoryExportLogger().debug("Starting to copy metastore to a temp location");
       Path tempDirectory = Files.createTempDirectory( METASTORE );
       IMetaStore xmlMetaStore = new XmlMetaStore( tempDirectory.toString() );
       MetaStoreUtil.copy( getRepoMetaStore(), xmlMetaStore );
-
+      getRepositoryExportLogger().debug("Finished to copying metastore to a temp location");
+      getRepositoryExportLogger().debug("Starting to zip the metastore");
       File zippedMetastore = Files.createTempFile( METASTORE, EXPORT_TEMP_FILENAME_EXT ).toFile();
       ZipOutputStream zipOutputStream = new ZipOutputStream( new FileOutputStream( zippedMetastore ) );
       zipFolder( tempDirectory.toFile(), zipOutputStream, tempDirectory.toString() );
       zipOutputStream.close();
-
+      getRepositoryExportLogger().debug("Finished zipping the metastore");
       // now that we have the zipped content of an xml metastore, we need to write that to the export bundle
       FileInputStream zis = new FileInputStream( zippedMetastore );
       String zipFileLocation = METASTORE + METASTORE_BACKUP_EXT;
       ZipEntry metastoreZipFileZipEntry = new ZipEntry( zipFileLocation );
+      getRepositoryExportLogger().debug("Starting to add the metastore zip to the export bundle");
       zos.putNextEntry( metastoreZipFileZipEntry );
       try {
         IOUtils.copy( zis, zos );
+        getRepositoryExportLogger().debug("Finished adding the metastore zip to the export bundle");
       } catch ( IOException e ) {
         throw e;
       } finally {
         zis.close();
         zos.closeEntry();
       }
-
+      getRepositoryExportLogger().debug("Starting to add the metastore to the export manifest");
       // add an ExportManifest entry for the metastore.
       ExportManifestMetaStore exportManifestMetaStore = new ExportManifestMetaStore( zipFileLocation,
         getRepoMetaStore().getName(),
@@ -406,11 +485,14 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
 
       zippedMetastore.deleteOnExit();
       tempDirectory.toFile().deleteOnExit();
+      getRepositoryExportLogger().debug("Finished adding the metastore to the export manifest");
 
     } catch ( Exception e ) {
-      log.error( Messages.getInstance().getString( "PentahoPlatformExporter.ERROR.ExportingMetaStore" ) );
-      log.debug( Messages.getInstance().getString( "PentahoPlatformExporter.ERROR.ExportingMetaStore" ), e );
+      getRepositoryExportLogger().error( Messages.getInstance().getString( "PentahoPlatformExporter.ERROR.ExportingMetaStore" ) );
+      getRepositoryExportLogger().debug( Messages.getInstance().getString( "PentahoPlatformExporter.ERROR.ExportingMetaStore" ), e );
     }
+    getRepositoryExportLogger().info("*********************************  [ End: Export Metastore ] *******************************");
+
   }
 
   protected IMetaStore getRepoMetaStore() {
@@ -419,7 +501,8 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
         metastore = MetaStoreExportUtil.connectToRepository( null ).getRepositoryMetaStore();
       } catch ( KettleException e ) {
         // can't get the metastore to import into
-        log.debug( "Can't get the metastore to import into" );
+        getRepositoryExportLogger().debug( "Can't get the metastore to import into" );
+
       }
     }
     return metastore;
@@ -462,6 +545,8 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
   }
 
   protected void exportFileContent( RepositoryFile exportRepositoryFile ) throws IOException, ExportException {
+    getRepositoryExportLogger().info("*********************************  [ Start: Export repository File(s)/Folder(s) ] *******************************");
+
     // get the file path
     String filePath = new File( this.path ).getParent();
     if ( filePath == null ) {
@@ -474,19 +559,33 @@ public class PentahoPlatformExporter extends ZipExportProcessor implements IPent
       throw new FileNotFoundException( "JCR file not found: " + this.path );
     }
 
+
     if ( exportRepositoryFile.isFolder() ) { // Handle recursive export
+      getRepositoryExportLogger().trace("Repository object [ " + exportRepositoryFile.getName() + "] is a folder");
       getExportManifest().getManifestInformation().setRootFolder( path.substring( 0, path.lastIndexOf( "/" ) + 1 ) );
 
       // don't zip root folder without name
       if ( !ClientRepositoryPaths.getRootFolderPath().equals( exportRepositoryFile.getPath() ) ) {
+        getRepositoryExportLogger().trace("Adding a name to the root folder");
         zos.putNextEntry( new ZipEntry( getFixedZipEntryName( exportRepositoryFile, filePath ) ) );
       }
+      getRepositoryExportLogger().debug("Starting recursive export of a folder [ " + exportRepositoryFile.getName() + " ]");
       exportDirectory( exportRepositoryFile, zos, filePath );
 
     } else {
+      getRepositoryExportLogger().trace("Repository object [ " + exportRepositoryFile.getName() + "] is a file");
       getExportManifest().getManifestInformation().setRootFolder( path.substring( 0, path.lastIndexOf( "/" ) + 1 ) );
-      exportFile( exportRepositoryFile, zos, filePath );
+
+      try {
+        getRepositoryExportLogger().debug("Starting export of a file [ " + exportRepositoryFile.getName() + " ]");
+        exportFile( exportRepositoryFile, zos, filePath );
+      } catch (ExportException | IOException exception ) {
+        getRepositoryExportLogger().error("Error while exporting of a file [ " + exportRepositoryFile.getName() + " ]");
+      } finally {
+        getRepositoryExportLogger().debug("Finished the export of a file [ " + exportRepositoryFile.getName() + " ]");
+      }
     }
+    getRepositoryExportLogger().info("*********************************  [ End: Export Repository File/Folder(s)/folder(s) ] *******************************");
   }
 
   protected Map<String, InputStream> getDomainFilesData( String domainId ) {

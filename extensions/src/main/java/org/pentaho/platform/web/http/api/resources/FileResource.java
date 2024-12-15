@@ -45,7 +45,7 @@ import org.pentaho.platform.engine.core.solution.SimpleParameterProvider;
 import org.pentaho.platform.engine.core.system.PentahoSessionHolder;
 import org.pentaho.platform.engine.core.system.PentahoSystem;
 import org.pentaho.platform.plugin.services.importer.PlatformImportException;
-import org.pentaho.platform.plugin.services.importexport.ExportException;
+import org.pentaho.platform.api.importexport.ExportException;
 import org.pentaho.platform.plugin.services.importexport.Exporter;
 import org.pentaho.platform.repository.RepositoryDownloadWhitelist;
 import org.pentaho.platform.repository.RepositoryFilenameUtils;
@@ -68,21 +68,8 @@ import org.pentaho.platform.web.servlet.HttpMimeTypeListener;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Providers;
 import javax.xml.bind.JAXBContext;
@@ -178,16 +165,18 @@ public class FileResource extends AbstractJaxRSResource {
    *      Encrypted file stream
    *    </pre>
    */
-  @GET
+  @POST
   @Path( "/backup" )
+  @Consumes( MediaType.APPLICATION_FORM_URLENCODED )
   @StatusCodes( {
     @ResponseCode( code = 200, condition = "Successfully exported the existing Pentaho System" ),
     @ResponseCode( code = 403, condition = "User does not have administrative permissions" ),
     @ResponseCode( code = 500, condition = "Failure to complete the export." ) } )
-  public Response systemBackup( @HeaderParam ( "user-agent" ) String userAgent ) {
+  public Response systemBackup(@HeaderParam ( "user-agent" ) String userAgent, final MultivaluedMap<String, String> formParams ) {
     FileService.DownloadFileWrapper wrapper;
     try {
-      wrapper = fileService.systemBackup( userAgent );
+      wrapper = fileService.systemBackup( userAgent, formParams.getFirst("logFile")
+              , formParams.getFirst("logLevel"), formParams.getFirst("outputFile") );
       return buildZipOkResponse( wrapper );
     } catch ( IOException e ) {
       throw new WebApplicationException( e, Response.Status.INTERNAL_SERVER_ERROR );
@@ -215,9 +204,10 @@ public class FileResource extends AbstractJaxRSResource {
     @ResponseCode( code = 403, condition = "User does not have administrative permissions" ),
     @ResponseCode( code = 500, condition = "Failure to complete the import." ) } )
   public Response systemRestore( @FormDataParam( "fileUpload" ) InputStream fileUpload, @FormDataParam ( "overwriteFile" ) String overwriteFile,
-                                 @FormDataParam ( "applyAclSettings" ) String applyAclSettings, @FormDataParam ( "overwriteAclSettings" ) String overwriteAclSettings ) {
+                                 @FormDataParam ( "applyAclSettings" ) String applyAclSettings, @FormDataParam ( "overwriteAclSettings" ) String overwriteAclSettings,
+                                 @FormDataParam ( "logFile" ) String logFile, @FormDataParam ( "logLevel" ) String logLevel ) {
     try {
-      fileService.systemRestore( fileUpload, overwriteFile, applyAclSettings, overwriteAclSettings );
+      fileService.systemRestore( fileUpload, overwriteFile, applyAclSettings, overwriteAclSettings, logFile, logLevel );
       return Response.ok().build();
     } catch ( PlatformImportException e ) {
       throw new WebApplicationException( e, Response.Status.INTERNAL_SERVER_ERROR );
